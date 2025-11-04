@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>粒子爱心</title>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            overflow: hidden;
+        }
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        let heartPoints = [];
+        let mouseX = 0, mouseY = 0;
+        let isMouseDown = false;
+
+        // 设置画布尺寸
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // 生成爱心的数学坐标
+        function generateHeartPoints() {
+            heartPoints = [];
+            for (let t = 0; t < Math.PI * 2; t += 0.01) {
+                const x = 16 * Math.sin(t) ** 3;
+                const y = 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t);
+                heartPoints.push({ x, y });
+            }
+        }
+        generateHeartPoints();
+
+        // 粒子类
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x;
+                this.y = y;
+                this.vx = (Math.random() - 0.5) * 2;
+                this.vy = (Math.random() - 0.5) * 2;
+                this.ax = 0;
+                this.ay = 0.1;
+                this.radius = Math.random() * 2 + 1;
+                this.color = color || `rgba(${Math.random() * 255}, ${Math.random() * 100}, ${Math.random() * 255}, 0.8)`;
+                this.life = Math.random() * 30 + 20;
+                this.age = 0;
+            }
+
+            update() {
+                this.vx += this.ax;
+                this.vy += this.ay;
+                this.x += this.vx;
+                this.y += this.vy;
+                this.age++;
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+            }
+
+            isDead() {
+                return this.age >= this.life || this.x < 0 || this.x > canvas.width || this.y < 0 || this.y > canvas.height;
+            }
+        }
+
+        // 生成粒子
+        function createParticles(x, y, count, color) {
+            for (let i = 0; i < count; i++) {
+                particles.push(new Particle(x, y, color));
+            }
+        }
+
+        // 鼠标交互
+        canvas.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+        });
+
+        canvas.addEventListener('mousedown', () => {
+            isMouseDown = true;
+        });
+
+        canvas.addEventListener('mouseup', () => {
+            isMouseDown = false;
+        });
+
+        // 动画循环
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 绘制爱心轮廓（可选）
+            /*
+            ctx.beginPath();
+            heartPoints.forEach((point, index) => {
+                const x = canvas.width / 2 + point.x * 10;
+                const y = canvas.height / 2 + point.y * 10;
+                if (index === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            });
+            ctx.strokeStyle = 'rgba(255, 100, 200, 0.5)';
+            ctx.stroke();
+            */
+
+            // 生成粒子（可根据鼠标状态调整）
+            if (isMouseDown) {
+                createParticles(mouseX, mouseY, 10, `rgba(${Math.random() * 255}, ${Math.random() * 100}, ${Math.random() * 255}, 0.8)`);
+            } else {
+                // 自动生成爱心粒子
+                const centerX = canvas.width / 2;
+                const centerY = canvas.height / 2;
+                const t = Date.now() * 0.001;
+                heartPoints.forEach(point => {
+                    const x = centerX + point.x * 10 + Math.sin(t * 0.5) * 5;
+                    const y = centerY + point.y * 10 + Math.cos(t * 0.8) * 3;
+                    createParticles(x, y, 1, `rgba(255, 100, 200, 0.8)`);
+                });
+            }
+
+            // 更新并绘制粒子
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.update();
+                p.draw();
+                if (p.isDead()) {
+                    particles.splice(i, 1);
+                }
+            }
+
+            requestAnimationFrame(animate);
+        }
+        animate();
+    </script>
+</body>
+</html>
